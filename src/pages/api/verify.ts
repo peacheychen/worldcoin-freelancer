@@ -1,4 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+// import https from 'https';
+
+import { createClient } from '@supabase/supabase-js';
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export const config = {
   api: {
@@ -34,6 +41,7 @@ export default function handler(
       "Content-Type": "application/json",
     },
     body: JSON.stringify(reqBody),
+    // agent: new https.Agent({ rejectUnauthorized: false }),
   })
   .then((verifyRes) => {
     if (!verifyRes.ok) {
@@ -52,6 +60,14 @@ export default function handler(
             "Credential verified! This user's nullifier hash is: ",
             wldResponse.nullifier_hash
           );
+
+          const { error } = await supabase
+          .from('users') // replace with your table name
+          .update({ verified: true }) // sets verified column to true
+          .eq('nullifier_hash', wldResponse.nullifier_hash); // where nullifier_hash equals wldResponse.nullifier_hash
+  
+          if (error) console.error('Error updating database:', error);
+          
           res.status(verifyRes.status).send({
             code: "success",
             detail: "This action verified correctly!",
@@ -70,4 +86,3 @@ export default function handler(
     res.status(500).send({ code: 'error', detail: 'Internal server error' });
   });
 }
-
